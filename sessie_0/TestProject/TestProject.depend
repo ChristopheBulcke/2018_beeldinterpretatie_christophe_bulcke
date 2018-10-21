@@ -3,7 +3,9 @@
 	<iostream>
 	<opencv2/opencv.hpp>
 
-1540030304 source:/home/christophe/Documents/2018_beeldinterpretatie_christophe_bulcke/sessie_0/TestProject/main.cpp
+1540127045 source:/home/christophe/Documents/2018_beeldinterpretatie_christophe_bulcke/sessie_0/TestProject/main.cpp
 	<iostream>
 	<opencv2/opencv.hpp>
+	<opencv2/highgui.hpp>
+	<opencv2/highgui/highgui.hpp>
 
