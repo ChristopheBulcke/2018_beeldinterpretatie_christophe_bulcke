@@ -9,3 +9,9 @@
 	<opencv2/highgui.hpp>
 	<opencv2/highgui/highgui.hpp>
 
+1540534290 source:/home/student/Documents/ChristopheBulcke/github/2018_beeldinterpretatie_christophe_bulcke/sessie_0/TestProject/main.cpp
+	<iostream>
+	<opencv2/opencv.hpp>
+	<opencv2/highgui.hpp>
+	<opencv2/highgui/highgui.hpp>
+
