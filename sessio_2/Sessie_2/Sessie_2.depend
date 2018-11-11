@@ -5,3 +5,9 @@
 	<opencv2/highgui.hpp>
 	<opencv2/highgui/highgui.hpp>
 
+1541946225 source:/home/christophe/Documents/2018_beeldinterpretatie_christophe_bulcke/sessio_2/Sessie_2/main.cpp
+	<iostream>
+	<opencv2/opencv.hpp>
+	<opencv2/highgui.hpp>
+	<opencv2/highgui/highgui.hpp>
+

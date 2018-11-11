@@ -6,13 +6,43 @@
 using namespace std;
 using namespace cv;
 
-//const int alpha_slider_max = 180;
-//int alpha_slider = 180;
-//int h1;
-//
-//static void on_trackbar(int , void*){
-//    h1 = alpha_slider;
-//}
+const int max_value_H = 360/2;
+const int max_value = 255;
+
+const String window_name = "Image with contoured mask";
+
+int low_H = 10, low_S = 100, low_V = 0;
+int high_H = 168, high_S = max_value, high_V = max_value;
+static void on_low_H_thresh_trackbar(int, void *)
+{
+    low_H = min(high_H-1, low_H);
+    setTrackbarPos("Low H", window_name, low_H);
+}
+static void on_high_H_thresh_trackbar(int, void *)
+{
+    high_H = max(high_H, low_H+1);
+    setTrackbarPos("High H", window_name, high_H);
+}
+static void on_low_S_thresh_trackbar(int, void *)
+{
+    low_S = min(high_S-1, low_S);
+    setTrackbarPos("Low S", window_name, low_S);
+}
+static void on_high_S_thresh_trackbar(int, void *)
+{
+    high_S = max(high_S, low_S+1);
+    setTrackbarPos("High S", window_name, high_S);
+}
+static void on_low_V_thresh_trackbar(int, void *)
+{
+    low_V = min(high_V-1, low_V);
+    setTrackbarPos("Low V", window_name, low_V);
+}
+static void on_high_V_thresh_trackbar(int, void *)
+{
+    high_V = max(high_V, low_V+1);
+    setTrackbarPos("High V", window_name, high_V);
+}
 
 int main(int argc, const char** argv)
 {
@@ -29,6 +59,7 @@ int main(int argc, const char** argv)
     if(parser.has("help")){
         parser.printMessage();
         cerr <<"Use absolute paths for images."<<endl;
+        cerr <<"When in loop use hit q to stop"<<endl;
         return -1;
     }
 
@@ -84,88 +115,153 @@ int main(int argc, const char** argv)
         return -1;
     }
     else{
-        imshow(sign1+" original",sign1_img);
-        waitKey(0);
-        imshow(sign2+" original",sign2_img);
-        waitKey(0);
-        imshow(sign3+" original",sign3_img);
-        waitKey(0);
-        imshow(sign4+" original",sign4_img);
-        waitKey(0);
+//        imshow(sign1+" original",sign1_img);
+//        waitKey(0);
+//        imshow(sign2+" original",sign2_img);
+//        waitKey(0);
+//        imshow(sign3+" original",sign3_img);
+//        waitKey(0);
+//        imshow(sign4+" original",sign4_img);
+//        waitKey(0);
     }
 
-
-
-
-    ///Threshold image in BGR and HSV color space
-    Mat img = sign3_img;
+    ///Threshold image in BGR color space
+    Mat img = sign1_img; //choose the image
 
     vector<Mat> channels;
-    split(img,channels);
+    split(img,channels);    //split in bgr channels
 
-    Mat finaal = Mat::zeros(Size(img.rows,img.cols),CV_8UC3);
+    Mat finaal = Mat::zeros(Size(img.rows,img.cols),CV_8UC3); //make an empty image
 
     Mat rood = channels[2];
     Mat blauw = channels[0];
     Mat groen = channels[1];
     Mat rood_th, blauw_th, groen_th;
-    inRange(rood,150,255,rood_th);
-    inRange(blauw,0,50,blauw_th);
-    inRange(groen,0,50,groen_th);
+    inRange(rood,150,255,rood_th);  //threshold r channel
+    inRange(blauw,0,50,blauw_th);   //threshold b channel
+    inRange(groen,0,50,groen_th);   //threshold g channel
 
     vector<Mat> ch;
-    ch.push_back(blauw_th);
+    ch.push_back(blauw_th); //make a vector of Mat (make a 3D matrix)
     ch.push_back(groen_th);
     ch.push_back(rood_th);
 
     merge(ch, finaal);
 
-    imshow("BGR color spqce",finaal);
-    waitKey(0);
+//    imshow("BGR color space",finaal);
+//    waitKey(0);
+
+
+    ///Threshold image in HSV color space
+
+    namedWindow(window_name);
+
+    //create trackbars
+    createTrackbar("Low H", window_name, &low_H, max_value_H, on_low_H_thresh_trackbar);
+    createTrackbar("High H", window_name, &high_H, max_value_H, on_high_H_thresh_trackbar);
+    createTrackbar("Low S", window_name, &low_S, max_value, on_low_S_thresh_trackbar);
+    createTrackbar("High S", window_name, &high_S, max_value, on_high_S_thresh_trackbar);
+    createTrackbar("Low V", window_name, &low_V, max_value, on_low_V_thresh_trackbar);
+    createTrackbar("High V", window_name, &high_V, max_value, on_high_V_thresh_trackbar);
 
     Mat img_hsv;
-    cvtColor(img,img_hsv,CV_BGR2HSV);
+    cvtColor(img,img_hsv,CV_BGR2HSV);   //convert to hsv colorspace
 
     vector<Mat> channels_hsv;
     split(img_hsv,channels_hsv);
 
+    //define everything that is used in infinite loop
     Mat finaal_hsv = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
+    Mat finaal_BGR = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
 
     Mat H = channels_hsv[0];
     Mat S = channels_hsv[1];
     Mat V = channels_hsv[2];
     Mat H_th1, S_th, H_th2, H_th, V_th;
-    inRange(H,168,180,H_th1);
-    inRange(H,0,10,H_th2);
-    inRange(S,150,255,S_th);
-    inRange(V,0,255,V_th);
-
-    H_th = (H_th1 | H_th2) & S_th;
 
     Mat H_eroded = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);;
     Mat H_eroded_dilated = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
     Point anchor = Point(-1,-1);
-
-    erode(H_th,H_eroded,Mat(),anchor,5);
-    dilate(H_eroded,H_eroded_dilated,Mat(),anchor,2);
-
-    imshow("H thresholded eroded and dilated",H_eroded_dilated);
-    waitKey(0);
-
     vector<Mat> ch_hsv;
-    ch_hsv.push_back(H_eroded_dilated & H);
-    ch_hsv.push_back(S_th & S);
-    ch_hsv.push_back(V_th & V);
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    vector<vector<Point> >hull( contours.size() );
+    Mat finaal_connected = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
+    Mat finaal_BGR_connected = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
+    Mat connected_blobs = Mat::zeros( H_eroded_dilated.size(), CV_8UC1 );
+    vector<Mat> ch_connected;
 
-    merge(ch_hsv, finaal_hsv);
+    while(true) {
 
-    cvtColor(finaal_hsv.clone(),finaal_hsv,CV_HSV2BGR);
+        inRange(H,high_H,180,H_th1);
+        inRange(H,0,low_H,H_th2);
+        inRange(S,low_S,high_S,S_th);
+        inRange(V,low_V,high_V,V_th);
 
-    imshow("HSV color space",finaal_hsv);
-    waitKey(0);
+        finaal_hsv = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
+        finaal_BGR = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
 
-//    vector<Point> grootste_blob = contours[0];
-//    for
+        H_th = (H_th1 | H_th2) & S_th;
+
+        erode(H_th,H_eroded,Mat(),anchor,5);
+        dilate(H_eroded,H_eroded_dilated,Mat(),anchor,5);
+
+        //imshow("H thresholded eroded and dilated",H_eroded_dilated);
+        //waitKey(0);
+
+        vector<Mat> ch_hsv;
+        ch_hsv.push_back(H_eroded_dilated & H);
+        ch_hsv.push_back(S & H_eroded_dilated);
+        ch_hsv.push_back(V & H_eroded_dilated);
+
+        merge(ch_hsv, finaal_hsv);
+
+        cvtColor(finaal_hsv,finaal_BGR,CV_HSV2BGR);
+
+        //imshow("masked image",finaal_BGR);
+
+        ///Contours
+        findContours( H_eroded_dilated, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, Point(0, 0) );
+
+        vector<vector<Point> >hull( contours.size() );
+        for( size_t i = 0; i < contours.size(); i++ ){
+            convexHull( Mat(contours[i]), hull[i], false );
+        }
+
+        connected_blobs = Mat::zeros( H_eroded_dilated.size(), CV_8UC1 );
+
+        //for( size_t i = 0; i< contours.size(); i++ ){
+        drawContours( connected_blobs, contours, 0, Scalar(255,255,255), -1, 8, vector<Vec4i>(), 0, Point() );
+        //}
+        //imshow("connected mask",connected_blobs);
+        //waitKey(0);
+
+        //clear Mat
+        finaal_connected = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
+        finaal_BGR_connected = Mat::zeros(Size(img_hsv.rows,img_hsv.cols),CV_8UC3);
+
+        vector<Mat> ch_connected;
+        ch_connected.push_back(connected_blobs & H);
+        ch_connected.push_back(S & connected_blobs);
+        ch_connected.push_back(V & connected_blobs);
+
+        merge(ch_connected, finaal_connected);
+
+        cvtColor(finaal_connected,finaal_BGR_connected,CV_HSV2BGR);
+
+        //place some informative text on the image
+        putText(finaal_BGR_connected, "Hit 'q' to exit.", cvPoint(30,30), FONT_HERSHEY_COMPLEX_SMALL, 1, cvScalar(255,255,255), 1, CV_AA);
+
+        imshow(window_name,finaal_BGR_connected);
+
+        //use a key entry to stop the programm
+        char key = (char) waitKey(30);
+        if (key == 'q' || key == 27)
+        {
+            break;
+        }
+
+    }
 
     return 0;
 }
