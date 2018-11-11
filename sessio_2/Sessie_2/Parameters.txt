@@ -1,1 +1,0 @@
--s1=sign.jpg -s2=sign2.jpg -s3=sign3.jpg -s4=sign4.jpg
