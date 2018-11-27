@@ -1,16 +1,10 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include "opencv2/features2d.hpp"
+
 
 
 using namespace std;
 using namespace cv;
-
-const int MAX_FEATURES = 500;
-const float GOOD_MATCH_PERCENT = 0.15f;
-#define DISTANCE_MULTIPLIER 0.7
 
 int main(int argc, const char** argv)
 {
@@ -68,22 +62,17 @@ int main(int argc, const char** argv)
 
     ///ORB
     // Variables to store keypoints and descriptors
-    std::vector<KeyPoint> orb_keypoints_scene, orb_keypoints_obj;
+    vector<KeyPoint> orb_keypoints_scene, orb_keypoints_obj;
     Mat orb_descriptors_scene, orb_descriptors_obj;
 
     // Detect ORB features and compute descriptors.
     Ptr<Feature2D> orb = ORB::create();
-    orb->detectAndCompute(img, Mat(), orb_keypoints_scene, orb_descriptors_scene);
     orb->detectAndCompute(obj, Mat(), orb_keypoints_obj, orb_descriptors_obj);
-
-    Mat orb_img_keypoints, orb_obj_keypoints;
-
-    drawKeypoints(img.clone(),orb_keypoints_scene,orb_img_keypoints,Scalar(0,250,0));
-    drawKeypoints(obj.clone(),orb_keypoints_obj,orb_obj_keypoints,Scalar(0,250,0));
+    orb->detectAndCompute(img, Mat(), orb_keypoints_scene, orb_descriptors_scene);
 
     //Search matches ORB
     BFMatcher orb_matcher(NORM_L2);
-    std::vector<DMatch> orb_matches;
+    vector<DMatch> orb_matches;
     orb_matcher.match(orb_descriptors_obj, orb_descriptors_scene, orb_matches);
 
     //Draw matches ORB
@@ -95,57 +84,57 @@ int main(int argc, const char** argv)
 
     ///AKAZE
     // Variables to store keypoints and descriptors
-    std::vector<KeyPoint> akaze_keypoints1, akaze_keypoints2;
-    Mat akaze_descriptors1, akaze_descriptors2;
-
-    // Detect akaze features and compute descriptors.
-    Ptr<Feature2D> akaze = AKAZE::create();
-    akaze->detectAndCompute(img, Mat(), akaze_keypoints1, akaze_descriptors1);
-    akaze->detectAndCompute(obj, Mat(), akaze_keypoints2, akaze_descriptors2);
-
-    Mat akaze_img_keypoints, akaze_obj_keypoints;
-
-    drawKeypoints(img.clone(),akaze_keypoints1,akaze_img_keypoints,Scalar(0,250,0));
-    drawKeypoints(obj.clone(),akaze_keypoints2,akaze_obj_keypoints,Scalar(0,250,0));
-
-    //Search matches AKAZE
-    BFMatcher akaze_matcher(NORM_L2); //not compatible
-    std::vector< DMatch > akaze_matches;
-    akaze_matcher.match(akaze_descriptors1, akaze_descriptors2, akaze_matches);
-
-    //Draw matches AKAZE
-    Mat akaze_img_matches;
-    drawMatches(img, akaze_keypoints1, obj, akaze_keypoints2, akaze_matches, akaze_img_matches);
-
-    imshow("Matches akaze",akaze_img_matches);
-    waitKey(0);
+//    std::vector<KeyPoint> akaze_keypoints1, akaze_keypoints2;
+//    Mat akaze_descriptors1, akaze_descriptors2;
+//
+//    // Detect akaze features and compute descriptors.
+//    Ptr<Feature2D> akaze = AKAZE::create();
+//    akaze->detectAndCompute(img, Mat(), akaze_keypoints1, akaze_descriptors1);
+//    akaze->detectAndCompute(obj, Mat(), akaze_keypoints2, akaze_descriptors2);
+//
+//    Mat akaze_img_keypoints, akaze_obj_keypoints;
+//
+//    drawKeypoints(img,akaze_keypoints1,akaze_img_keypoints,Scalar(0,250,0));
+//    drawKeypoints(obj,akaze_keypoints2,akaze_obj_keypoints,Scalar(0,250,0));
+//
+//    //Search matches AKAZE
+//    BFMatcher akaze_matcher(NORM_L2); //not compatible
+//    vector< DMatch > akaze_matches;
+//    akaze_matcher.match(akaze_descriptors1, akaze_descriptors2, akaze_matches);
+//
+//    //Draw matches AKAZE
+//    Mat akaze_img_matches;
+//    drawMatches(img, akaze_keypoints1, obj, akaze_keypoints2, akaze_matches, akaze_img_matches);
+//
+//    imshow("Matches akaze",akaze_img_matches);
+//    waitKey(0);
 
     ///BRISK
     // Variables to store keypoints and descriptors
-    std::vector<KeyPoint> brisk_keypoints1, brisk_keypoints2;
-    Mat brisk_descriptors1, brisk_descriptors2;
-
-    // Detect brisk features and compute descriptors.
-    Ptr<Feature2D> brisk = BRISK::create();
-    brisk->detectAndCompute(img, Mat(), brisk_keypoints1, brisk_descriptors1);
-    brisk->detectAndCompute(obj, Mat(), brisk_keypoints2, brisk_descriptors2);
-
-    Mat brisk_img_keypoints, brisk_obj_keypoints;
-
-    drawKeypoints(img.clone(),brisk_keypoints1,brisk_img_keypoints,Scalar(0,250,0));
-    drawKeypoints(obj.clone(),brisk_keypoints2,brisk_obj_keypoints,Scalar(0,250,0));
-
-    //Search matches BRISK
-    BFMatcher brisk_matcher(NORM_L2);   //not compatible
-    std::vector< DMatch > brisk_matches;
-    brisk_matcher.match(brisk_descriptors1, brisk_descriptors2, brisk_matches);
-
-    //Draw matches BRISK
-    Mat brisk_img_matches;
-    drawMatches(img, brisk_keypoints1, obj, brisk_keypoints2, brisk_matches, brisk_img_matches);
-
-    imshow("Matches brisk",brisk_img_matches);
-    waitKey(0);
+//    std::vector<KeyPoint> brisk_keypoints1, brisk_keypoints2;
+//    Mat brisk_descriptors1, brisk_descriptors2;
+//
+//    // Detect brisk features and compute descriptors.
+//    Ptr<Feature2D> brisk = BRISK::create();
+//    brisk->detectAndCompute(img, Mat(), brisk_keypoints1, brisk_descriptors1);
+//    brisk->detectAndCompute(obj, Mat(), brisk_keypoints2, brisk_descriptors2);
+//
+//    Mat brisk_img_keypoints, brisk_obj_keypoints;
+//
+//    drawKeypoints(img.clone(),brisk_keypoints1,brisk_img_keypoints,Scalar(0,250,0));
+//    drawKeypoints(obj.clone(),brisk_keypoints2,brisk_obj_keypoints,Scalar(0,250,0));
+//
+//    //Search matches BRISK
+//    BFMatcher brisk_matcher(NORM_L2);   //not compatible
+//    std::vector< DMatch > brisk_matches;
+//    brisk_matcher.match(brisk_descriptors1, brisk_descriptors2, brisk_matches);
+//
+//    //Draw matches BRISK
+//    Mat brisk_img_matches;
+//    drawMatches(img, brisk_keypoints1, obj, brisk_keypoints2, brisk_matches, brisk_img_matches);
+//
+//    imshow("Matches brisk",brisk_img_matches);
+//    waitKey(0);
 
 
 
@@ -171,105 +160,104 @@ int main(int argc, const char** argv)
 //    }
 
     ///matches filter optie 3
-    double max_dist = 0; double min_dist = 100;
+    //double max_dist = 0; double min_dist = 100;
 
     //-- Quick calculation of max and min distances between keypoints
-    for( int i = 0; i < orb_descriptors_obj.rows; i++ )
-    {
-        double dist = orb_matches[i].distance;
-        if( dist < min_dist ) min_dist = dist;
-        if( dist > max_dist ) max_dist = dist;
-    }
-
-    printf("-- Max dist : %f \n", max_dist );
-    printf("-- Min dist : %f \n", min_dist );
-
-    //-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
-    std::vector< DMatch > good_matches;
-
-    for( int i = 0; i < orb_descriptors_obj.rows; i++ )
-    { if( orb_matches[i].distance < 3*min_dist )
-        { good_matches.push_back( orb_matches[i]); }
-    }
-
-    ///matches filter optie 4
-//    double distance, minimum, maximum;
-//    std::vector< DMatch > good_matches;
-//
-//    // Find min and max distance
-//    for(int i=0; i < orb_descriptors_obj.rows; i++) {
-//        distance = orb_matches.at(i).distance;
-//
-//        // Avoid skipping the next for loops
-//        if(distance == 0) {
-//            continue;
-//        }
-//
-//        // Valid distance, update
-//        if(distance < minimum) {
-//            minimum = distance;
-//        }
-//        if(distance > maximum) {
-//            maximum = distance;
-//        }
+//    for( int i = 0; i < orb_descriptors_obj.rows; i++ )
+//    {
+//        double dist = orb_matches[i].distance;
+//        if( dist < min_dist ) min_dist = dist;
+//        if( dist > max_dist ) max_dist = dist;
 //    }
 //
-//    // Filter on distance
+//    printf("-- Max dist : %f \n", max_dist );
+//    printf("-- Min dist : %f \n", min_dist );
+//
+//    //-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
+//    std::vector< DMatch > good_matches;
+//
+//    for( int i = 0; i < orb_descriptors_obj.rows; i++ )
+//    { if( orb_matches[i].distance < 3*min_dist )
+//        { good_matches.push_back( orb_matches[i]); }
+//    }
+
+    ///matches filter optie 4
+    double min_dist = 1000, max_dist = 0;
+    vector<DMatch> good_matches;
+
+    // Find min and max distance
+    for(int i=0; i < orb_descriptors_obj.rows; i++)
+    {
+        double distance = orb_matches[i].distance;
+
+        // Valid distance, update
+        if(distance < min_dist) {
+            min_dist = distance;
+        }
+        if(distance > max_dist) {
+            max_dist = distance;
+        }
+    }
+
+    // Filter on distance
 //    for(int i=0; i < orb_descriptors_obj.rows; i++ )
 //    {
-//        if(orb_matches.at(i).distance < DISTANCE_MULTIPLIER * (maximum-minimum) + minimum) // min + DISTANCE_MULTIPLIER * difference
+//        if(orb_matches.at(i).distance <= DISTANCE_MULTIPLIER * (maximum-minimum) + minimum) // min + DISTANCE_MULTIPLIER * difference
 //        {
 //            good_matches.push_back(orb_matches.at(i));
 //        }
 //    }
 
+    for(int i=0; i < orb_descriptors_obj.rows; i++ )
+    {
+        if(orb_matches[i].distance <= 3 * min_dist)
+        {
+            good_matches.push_back(orb_matches[i]);
+        }
+    }
+
     // Draw top matches
-    Mat orb_imMatches;
-    drawMatches(obj, orb_keypoints_obj, img, orb_keypoints_scene, good_matches, orb_imMatches);
-    imshow("beste matches", orb_imMatches);
+    Mat result;
+    drawMatches(obj, orb_keypoints_obj, img, orb_keypoints_scene, good_matches, result);
+    imshow("beste matches", result);
     waitKey(0);
 
 
     // Extract location of good matches
-    std::vector<Point2f> object;
-    std::vector<Point2f> scene;
-    for( size_t i = 0; i < good_matches.size(); i++ )
+    vector<Point2f> object, scene;
+    for( int i = 0; i < good_matches.size(); i++ )
     {
         //-- Get the keypoints from the good matches
-        object.push_back( orb_keypoints_scene[ good_matches[i].queryIdx ].pt );
-        scene.push_back( orb_keypoints_obj[ good_matches[i].trainIdx ].pt );
+        object.push_back( orb_keypoints_obj[ good_matches[i].queryIdx ].pt );
+        scene.push_back( orb_keypoints_scene[ good_matches[i].trainIdx ].pt );
     }
 
-    Mat imReg, h;
-
     // Find homography
-    h = findHomography( object, scene, RANSAC );
+    Mat h = findHomography( object, scene, RANSAC );
 
-
-    std::vector<Point2f> obj_corners(4);
+    vector<Point2f> obj_corners(4);
     obj_corners[0] = Point2f(0, 0);
     obj_corners[1] = Point2f( (float)obj.cols, 0 );
     obj_corners[2] = Point2f( (float)obj.cols, (float)obj.rows );
     obj_corners[3] = Point2f( 0, (float)obj.rows );
-    std::vector<Point2f> scene_corners(4);
-
+    vector<Point2f> scene_corners(4);
 
     perspectiveTransform( obj_corners, scene_corners, h);
 
-    line( orb_imMatches, scene_corners[0] + Point2f((float)obj.cols, 0),
+    line( result, scene_corners[0] + Point2f((float)obj.cols, 0),
           scene_corners[1] + Point2f((float)obj.cols, 0), Scalar(0, 255, 0), 4 );
 
-    line( orb_imMatches, scene_corners[1] + Point2f((float)obj.cols, 0),
+    line( result, scene_corners[1] + Point2f((float)obj.cols, 0),
           scene_corners[2] + Point2f((float)obj.cols, 0), Scalar( 0, 255, 0), 4 );
 
-    line( orb_imMatches, scene_corners[2] + Point2f((float)obj.cols, 0),
+    line( result, scene_corners[2] + Point2f((float)obj.cols, 0),
           scene_corners[3] + Point2f((float)obj.cols, 0), Scalar( 0, 255, 0), 4 );
 
-    line( orb_imMatches, scene_corners[3] + Point2f((float)obj.cols, 0),
+    line( result, scene_corners[3] + Point2f((float)obj.cols, 0),
           scene_corners[0] + Point2f((float)obj.cols, 0), Scalar( 0, 255, 0), 4 );
 
 
-    imshow("Good Matches & Object detection", orb_imMatches );
+    imshow("Good Matches & Object detection", result );
     waitKey(0);
 
     return 0;
