@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-s1=strawberry1.tif -s2=strawberry2.tif" />
+				<Option parameters="-s1=strawberry1.tif" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
