@@ -21,17 +21,28 @@ void CallBackFuncPosPoints(int event, int x, int y, int flags, void* userdata)
     }
     else if  ( event == EVENT_RBUTTONDOWN )
     {
-        cout << "Delete position (" << x << ", " << y << ")" << endl;
-        //pop_back: element verwijderen
-        PosPunten.pop_back();
+        if(PosPunten.size() > 0)
+        {
+            cout << "Deleted last added position. " << PosPunten.size()-1 << " entries left." << endl;
+            //pop_back: element verwijderen
+            PosPunten.pop_back();
+        }
+        else
+        {
+            cout << "There are no points in the list." << endl;
+        }
+
     }
     else if  ( event == EVENT_MBUTTONDOWN )
     {
-        //TODO catch empty vector
-        for (int i = 0; i < PosPunten.size(); ++i)
+        if(PosPunten.size() == 0) cout << "There are no points in the list" << endl;
+        else
         {
-            cout << "List of clicked points: " <<endl;
-            cout << PosPunten.at(i) << endl;
+            for (int i = 0; i < PosPunten.size(); ++i)
+            {
+                cout << "List of clicked points: " <<endl;
+                cout << PosPunten.at(i) << endl;
+            }
         }
     }
 }
@@ -46,17 +57,27 @@ void CallBackFuncNegPoints(int event, int x, int y, int flags, void* userdata)
     }
     else if  ( event == EVENT_RBUTTONDOWN )
     {
-        cout << "Delete position" << endl;
-        //pop_back: element verwijderen
-        NegPunten.pop_back();
+        if(NegPunten.size() > 0)
+        {
+            cout << "Deleted last added position. " << NegPunten.size()-1 << " entries left." << endl;
+            //pop_back: element verwijderen
+            NegPunten.pop_back();
+        }
+        else
+        {
+            cout << "There are no points in the list." << endl;
+        }
     }
     else if  ( event == EVENT_MBUTTONDOWN )
     {
-        //TODO catch empty vector
-        for (int i = 0; i < NegPunten.size(); ++i)
+        if(NegPunten.size() == 0) cout << "There are no points in the list." << endl;
+        else
         {
-            cout << "List of clicked points: " <<endl;
-            cout << NegPunten.at(i) << endl;
+            for (int i = 0; i < NegPunten.size(); ++i)
+            {
+                cout << "List of clicked points: " <<endl;
+                cout << NegPunten.at(i) << endl;
+            }
         }
     }
 }
@@ -88,13 +109,14 @@ int main(int argc, const char** argv)
         cerr <<"Image parameters correct."<<endl;
     }
 
-        //Create a window
+    //Create a window
 
     string pos_points_window("Select the positive training points");
     string neg_points_window("Select the negative training points");
     namedWindow(pos_points_window, 1);
     namedWindow(neg_points_window, 1);
 
+    ///We're using mouseclicks to select keypoints in the image
     //set the callback function for any mouse event
     setMouseCallback(pos_points_window, CallBackFuncPosPoints, NULL);
     setMouseCallback(neg_points_window, CallBackFuncNegPoints, NULL);
@@ -140,9 +162,17 @@ int main(int argc, const char** argv)
     imshow(neg_points_window, s1_neg_points);
     waitKey(0);
     destroyWindow(neg_points_window);
-    ///extract all trainingsdata
 
-    drawPoints(s1);
+    ///extract all trainingsdata
+    drawPoints(s1); //show all points
+
+    ///De groendienst komt langs
+    Mat bgr_channels[3];
+    split(s1, bgr_channels);
+    bgr_channels[1] = Mat::zeros(s1.rows, s1.cols, CV_8UC1);
+    merge(bgr_channels, 3, s1);
+
+    ///Put image in hsv to create descriptors
 
     Mat s1_hsv;
     cvtColor(s1, s1_hsv, COLOR_BGR2HSV);
@@ -151,31 +181,28 @@ int main(int argc, const char** argv)
 
     Mat trDataPosPunten(PosPunten.size(), 3, CV_32FC1);
     Mat labels_pos = Mat::ones(PosPunten.size(), 1, CV_32SC1);
-    cerr<< "hier ben ik 1" << endl;
+
     //descriptors are the hsv values of each point in PosPunten
     for (int i = 0; i < PosPunten.size(); i++)
     {
         Vec3b descriptor1 = s1_hsv.at<Vec3b>(PosPunten[i]);
+
         trDataPosPunten.at<float>(i,0) = descriptor1[0];
         trDataPosPunten.at<float>(i,1) = descriptor1[1];
         trDataPosPunten.at<float>(i,2) = descriptor1[2];
     }
 
-    cerr<< "hier ben ik 2" << endl;
 
     Mat trDataNegPunten(NegPunten.size(), 3, CV_32FC1);
     Mat labels_neg = Mat::zeros(NegPunten.size(), 1, CV_32SC1);
 
-    cerr<< "hier ben ik 3" << endl;
-    cerr << "NegPunten size " <<NegPunten.size() << endl;
     for (int j = 0; j < NegPunten.size(); j++)
     {
         Vec3b descriptor2 = s1_hsv.at<Vec3b>(NegPunten[j]);
-        cerr<< " na 3 1 iteratie "<< j <<endl;
+
         trDataNegPunten.at<float>(j,0) = descriptor2[0];
         trDataNegPunten.at<float>(j,1) = descriptor2[1];
         trDataNegPunten.at<float>(j,2) = descriptor2[2];
-        cerr<< " na 3 2"<< endl;
     }
 
     Mat trainData, labels;
@@ -183,12 +210,10 @@ int main(int argc, const char** argv)
     vconcat(trDataPosPunten, trDataNegPunten, trainData);   //these are the trainingsamples
     vconcat(labels_pos, labels_neg, labels);
 
-    cerr<< "hier ben ik 4" << endl;
-
+    ///Training
+    // knn
     Ptr<TrainData> trainingData;
-    Ptr<KNearest> kclassifier = KNearest::create(); //create a knearest classifier
-
-    cerr<< "hier ben ik 5" << endl;
+    Ptr<KNearest> kclassifier = KNearest::create(); //create a knearest classifie
 
     trainingData = TrainData::create(trainData, ROW_SAMPLE, labels);
     kclassifier->setIsClassifier(true);
@@ -197,13 +222,26 @@ int main(int argc, const char** argv)
 
     kclassifier->train(trainingData);
 
-    cerr<< "hier ben ik 6" << endl;
+    //Bayes
+
+    Ptr<NormalBayesClassifier> bayes = NormalBayesClassifier::create();
+    bayes->train(trainData, ROW_SAMPLE, labels);
+
+    //svm
+
+    Ptr<SVM> svm = SVM::create();
+    svm->setType(SVM::C_SVC);
+    svm->setKernel(SVM::LINEAR);
+    svm->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 100, 1e-6));
+    svm->train(trainData, ROW_SAMPLE, labels);
 
 
-    //kclassifier->findNearest(trainingData,kclassifier->getDefaultK(),knn_labels);
+    /// Classification
 
-    Mat labels_knn;
+    Mat labels_knn, labels_bay, labels_svm;
     Mat result_knn = Mat::zeros(s1.rows, s1.cols, CV_8UC1);
+    Mat result_bay = Mat::zeros(s1.rows, s1.cols, CV_8UC1);
+    Mat result_svm = Mat::zeros(s1.rows, s1.cols, CV_8UC1);
 
     for(int i=0; i < s1.rows; i++)
     {
@@ -218,14 +256,19 @@ int main(int argc, const char** argv)
 
             // pixel per pixel nearest zoeken
             kclassifier->findNearest(data, kclassifier->getDefaultK(), labels_knn);
-
+            bayes->predict( data, labels_bay);
+            svm->predict(data, labels_svm);
 
             result_knn.at<uchar>(i,j) = (uchar)labels_knn.at<float>(0,0);
+            result_bay.at<uchar>(i,j) = (uchar)labels_bay.at<int>(0,0);
+            result_svm.at<uchar>(i,j) = (uchar)labels_svm.at<float>(0,0);
         }
     }
 
-    result_knn = result_knn*255;
-    imshow("result", result_knn);
+
+    imshow("result knn", result_knn*255);
+    imshow("result bay", result_bay*255);
+    imshow("result svm", result_svm*255);
 
     waitKey(0);
 
