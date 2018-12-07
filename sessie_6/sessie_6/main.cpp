@@ -8,17 +8,22 @@
 using namespace std;
 using namespace cv;
 
+vector<Point> track;
 CascadeClassifier face_cascade_haar;
 CascadeClassifier face_cascade_lbp;
+
 Mat faceDetector(Mat);
+Mat personDetector(Mat frame, vector<Point> track);
 
 int main(int argc, const char** argv)
 {
     ///Adding a little help option and command line parser input
     CommandLineParser parser(argc, argv,
         "{help h usage ?    |    | show this message}"
-        "{video vid    |    | (required) path to video}"
-        "{haar_cascade casc    |    | (required) path to haar_cascade}"
+        "{video_faces vidf   |    | (required) path to video}"
+        "{video_people vidp  |    | (required) path to video}"
+        "{haar_cascade haar    |    | (required) path to haar_cascade}"
+        "{lbp_cascade lbp    |    | (required) path to haar_cascade}"
     );
 
     ///Print help message
@@ -30,10 +35,21 @@ int main(int argc, const char** argv)
     }
 
     ///Empty string warning
-    string vid_name(parser.get<string>("video"));
+    string vidf_name(parser.get<string>("video_faces"));
+    string vidp_name(parser.get<string>("video_people"));
     string haar_name(parser.get<string>("haar_cascade"));
+    string lbp_name(parser.get<string>("lbp_cascade"));
 
-    if(vid_name.empty()){
+    if(vidf_name.empty()){
+        parser.printMessage();
+        cerr <<"Empty parameter for video!"<<endl;
+        return -1;
+    }
+    else{
+        cerr <<"Video parameters correct."<<endl;
+    }
+
+    if(vidp_name.empty()){
         parser.printMessage();
         cerr <<"Empty parameter for video!"<<endl;
         return -1;
@@ -51,19 +67,39 @@ int main(int argc, const char** argv)
         cerr <<"haar_cascade parameters correct."<<endl;
     }
 
+    if(lbp_name.empty()){
+        parser.printMessage();
+        cerr <<"Empty parameter for lbp_cascade!"<<endl;
+        return -1;
+    }
+    else{
+        cerr <<"lbp_cascade parameters correct."<<endl;
+    }
+
     ///Load the cascades
     if( !face_cascade_haar.load( haar_name ) )
     {
-        cout << "Error loading face cascade" <<endl;
+        cout << "Error loading haar cascade" <<endl;
         return -1;
     };
-    if( !face_cascade_lbp.load( haar_name ) )
+    if( !face_cascade_lbp.load( lbp_name ) )
     {
-        cout << "Error loading face cascade" <<endl;
+        cout << "Error loading lbp cascade" <<endl;
         return -1;
     };
 
     ///Video interface
+    string vid_name;
+    bool faces = false;
+
+    if (faces)
+    {
+        vid_name = vidf_name;
+    }
+    else
+    {
+        vid_name = vidp_name;
+    }
 
     VideoCapture cap(vid_name);
     if( !cap.isOpened()){
@@ -75,31 +111,24 @@ int main(int argc, const char** argv)
     //cap.set(CV_CAP_PROP_POS_FRAMES,count-1); //Set index to last frame
     namedWindow("MyVideo",CV_WINDOW_AUTOSIZE);
 
-//    while(1)
-//    {
-//        Mat frame_in, frame_out;
-//        bool success = cap.read(frame_in);
-//        if (!success){
-//          cout << "Cannot read  frame " << endl;
-//          break;
-//        }
-//        frame_out = faceDetector(frame_in.clone());
-//        imshow("MyVideo", frame_out);
-//        if(waitKey(25) >= 0) break;
-//    }
-
-
     while(1)
     {
         Mat frame_in, frame_out;
         bool success = cap.read(frame_in);
         if (!success){
-          cout << "Cannot read  frame " << endl;
+          cout << "Cannot read frame " << endl;
           break;
         }
-        frame_out = hogDetector(frame_in.clone());
+        if (faces)
+        {
+            frame_out = faceDetector(frame_in.clone());
+        }
+        else
+        {
+            frame_out = personDetector(frame_in.clone(), track);
+        }
         imshow("MyVideo", frame_out);
-        if(waitKey(25) >= 0) break;
+        if(waitKey(10) >= 0) break;
     }
 
     return 0;
@@ -129,7 +158,7 @@ Mat faceDetector( Mat frame )
         ellipse( frame, center, Size( facesHAAR[i].width/2, facesHAAR[i].height/2 ), 0, 0, 360, Scalar( 255, 0, 255 ), 3 );
         temp = (int)scoreHAAR[i];
         putText( frame, to_string(temp), Point(facesHAAR[i].x, facesHAAR[i].y),FONT_HERSHEY_SIMPLEX, 1, Scalar( 255, 0, 255 ), 2);
-        Mat faceROI = frame_gray( facesHAAR[i] );
+        Mat faceROI = frame( facesHAAR[i] );
     }
 
     temp = 0;
@@ -137,9 +166,9 @@ Mat faceDetector( Mat frame )
     for ( size_t i = 0; i < facesLBP.size(); i++ )
     {
         rectangle(frame, Point(facesLBP[i].x, facesLBP[i].y), Point(facesLBP[i].x + facesLBP[i].width, facesLBP[i].y + facesLBP[i].height), Scalar( 255, 255, 0 ), 3);
-
+        temp = (int)scoreLBP[i];
         putText( frame, to_string(temp), Point(facesLBP[i].x + facesLBP[i].width, facesLBP[i].y),FONT_HERSHEY_SIMPLEX, 1, Scalar( 255, 255, 0 ), 2);
-        Mat faceROI = frame_gray( facesLBP[i] );
+        Mat faceROI = frame( facesLBP[i] );
     }
 
     putText( frame, "LBP", Point(20, 25),FONT_HERSHEY_SIMPLEX, 1, Scalar( 255, 255, 0 ));
@@ -148,9 +177,32 @@ Mat faceDetector( Mat frame )
     return frame;
 }
 
-Mat hogDetector(Mat frame)
+Mat personDetector(Mat frame, vector<Point> track)
 {
     Mat frame_temp = frame.clone();
+    int temp = 0;
+
+    vector<Rect> person;
+    vector<double> score;
+
+    HOGDescriptor hog;
+    hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
+
+    hog.detectMultiScale(frame_temp, person, score );
+
+    for( size_t i = 0; i < person.size(); i++ )
+    {
+        Rect r = person[i];
+        rectangle(frame, person[i], cv::Scalar(255,0,255), 3);
+        temp = (int)score[i];
+        putText(frame, to_string(temp),Point(person[i].x,person[i].y+50), FONT_HERSHEY_SIMPLEX, 1, Scalar(255,0,255));
+        track.push_back(Point(person[i].x+person[i].width/2,person[i].y+person[i].height/2));
+    }
+
+    /// plot the track so far
+    for(size_t i = 1; i < track.size(); i++){
+        line(frame, track[i-1], track[i], Scalar(255,255,0), 2);
+    }
 
     return frame;
 }

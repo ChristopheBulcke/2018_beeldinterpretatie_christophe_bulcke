@@ -3,3 +3,11 @@
 	<iostream>
 	<opencv2/opencv.hpp>
 
+1544206534 source:/home/christophe/Documents/2018_beeldinterpretatie_christophe_bulcke/sessie_6/sessie_6/main.cpp
+	<iostream>
+	<opencv2/opencv.hpp>
+	"opencv2/objdetect.hpp"
+	"opencv2/highgui.hpp"
+	"opencv2/imgproc.hpp"
+	<string>
+
