@@ -1,0 +1,5 @@
+# depslib dependency file v1.0
+1544168227 source:/home/student/Documents/ChristopheBulcke/github/2018_beeldinterpretatie_christophe_bulcke/sessie_6/sessie_6/main.cpp
+	<iostream>
+	<opencv2/opencv.hpp>
+
