@@ -144,8 +144,9 @@ int main(int argc, const char** argv)
 
 
     ///Convert to HSV to segment different colors
-    Mat img_hsv;
-    cvtColor(img,img_hsv,COLOR_BGR2HSV);
+    Mat hsv;
+    cvtColor(transformedCropped,hsv,COLOR_BGR2HSV);
+
 
 
     return 0;
