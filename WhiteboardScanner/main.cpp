@@ -161,14 +161,14 @@ int main(int argc, const char** argv)
 
     fillConvexPoly( mask, boardCorners, Scalar(255,255,255), LINE_AA );
 
-    imshow("mask",mask);
-    waitKey(0);
+//    imshow("mask",mask);
+//    waitKey(0);
 
     Mat board = Mat::zeros(img.rows,img.cols,CV_8UC3);
     multiply(img,mask/255,board);
 
-    imshow("board",board);
-    waitKey(0);
+//    imshow("board",board);
+//    waitKey(0);
 
     ///Transform perspective
 
@@ -197,87 +197,80 @@ int main(int argc, const char** argv)
 
     M = getPerspectiveTransform(temp1,temp2);
     warpPerspective(board,transformed,M,transformed.size());
-    imshow("transformed mask",transformed);
-    waitKey(0);
+//    imshow("transformed mask",transformed);
+//    waitKey(0);
 
     Mat transformedCropped = Mat::zeros(r1.height,r1.width,img.type());
 
-    Mat tmp = transformed(Rect(r1.x,r1.y,r1.width,r1.height));
+    Mat tmp = transformed(Rect(r1.x+1,r1.y+1,r1.width-1,r1.height-1));
     tmp.copyTo(transformedCropped);
     imshow("transformedCropped",transformedCropped);
     waitKey(0);
 
-    Mat sharpened,smoothed;
-    float kdata1[] = {-1, -1, -1, -1, 9, -1, -1, -1, -1};
-    float kdata2[] = {0, -1, 0, -1, 5, -1, 0, -1, 0};
-    Mat kernel(3,3,CV_32F, kdata1);  //laplace kernel for sharpening the image
-    filter2D(transformedCropped,sharpened,-1,kernel);
-    imshow("sharpened",sharpened);
+    ///Preprocessing
+    //noise reduction
+    Mat gray = Mat::zeros(r1.height,r1.width,CV_8UC1);
+    cvtColor(transformedCropped,gray,CV_BGR2GRAY);
+    imshow("gray",gray);
     waitKey(0);
 
-//    bilateralFilter ( sharpened, smoothed, 20, 255, 80 );//bilateral because it preserves edges
-//    imshow("smoothed",smoothed);
+    Mat grayCLAHE;
+    Ptr<CLAHE> clahe_pointer = createCLAHE();
+    clahe_pointer->setTilesGridSize(Size(15,15));
+    clahe_pointer->setClipLimit(1);
+    clahe_pointer->apply(gray.clone(), grayCLAHE);
+    imshow("gray CLAHE", grayCLAHE); waitKey(0);
+
+    Mat smoothedGaussian,smoothedBilateral,smoothedMedian;
+//    bilateralFilter ( gray, smoothedBilateral, 15, 80, 80 );
+//    imshow("smoothedBilateral",smoothedBilateral);
 //    waitKey(0);
 
-    GaussianBlur(sharpened,smoothed,Size(3,3), 0, 0);
-    imshow("gaussian",smoothed);
+    GaussianBlur(grayCLAHE,smoothedGaussian,Size(5,5), 0, 0);
+    imshow("smoothedGaussian",smoothedGaussian);
+    waitKey(0);
+
+//    medianBlur(gray,smoothedMedian,3);
+//    imshow("smoothedMedian",smoothedMedian);
+//    waitKey(0);
+
+    Mat sharpenedBilateral,sharpenedGaussian,sharpenedMedian;
+    float kdata[] = {-1, -1, -1, -1, 9, -1, -1, -1, -1};
+    Mat kernel(3,3,CV_32F,kdata);  //laplace kernel for sharpening the image
+//    filter2D(smoothedBilateral,sharpenedBilateral,-1,kernel);
+//    imshow("sharpenedBilateral",sharpenedBilateral);
+//    waitKey(0);
+
+    filter2D(smoothedGaussian,sharpenedGaussian,-1,kernel);
+    imshow("sharpenedGaussian",sharpenedGaussian);
+    waitKey(0);
+
+//    filter2D(smoothedMedian,sharpenedMedian,-1,kernel);
+//    imshow("sharpenedMedian",sharpenedMedian);
+//    waitKey(0);
+
+//    Mat thresh;
+//    inRange(sharpenedGaussian,0,150,thresh);
+//    imshow("gaussian, thresholded",thresh);
+//    waitKey(0);
+
+//    inRange(sharpenedBilateral,0,150,thresh);
+//    imshow("bilateral, thresholded",thresh);
+//    waitKey(0);
+//
+//    inRange(sharpenedMedian,0,150,thresh);
+//    imshow("median, thresholded",thresh);
+//    waitKey(0);
+
+    ///Mask
+    Mat maskThresh;
+    adaptiveThreshold(smoothedGaussian, maskThresh, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 5, 3);
+    imshow("gray CLAHE adaptive gaussian threshold", maskThresh);
     waitKey(0);
 
     ///Convert to HSV to segment different colors
-    Mat hsv, mask_white;
+    Mat hsv;
     vector<Mat> channels;
-
-    mask_white = Mat::zeros(r1.height,r1.width,transformedCropped.type());
-
-    cvtColor(smoothed,hsv,CV_BGR2HSV);
-    split(hsv,channels);
-
-    inRange(hsv, Scalar(0,0,160), Scalar(180,255,255), mask_white);
-    bitwise_not(mask_white, mask_white);
-    Point anchor = Point(-1,-1);
-//    dilate(mask_white,mask_white,Mat(),anchor,1);
-    imshow("white mask",mask_white);
-    waitKey(0);
-
-    Mat result = Mat::ones(r1.height,r1.width,transformedCropped.type());
-    transformedCropped.copyTo(result,mask_white);
-
-    imshow("result",result);
-    waitKey(0);
-
-    //Canny
-    Mat edges = Mat::zeros(r1.height,r1.width,CV_8UC1);
-    GaussianBlur(transformedCropped,transformedCropped,Size(3,3), 0, 0);
-    namedWindow("canny edge");
-
-    createTrackbar("Canny Low", "canny edge", &canny_l, canny_max, on_canny_l_trackbar);
-    createTrackbar("Canny High", "canny edge", &canny_h, canny_max, on_canny_h_trackbar);
-
-//    while(true)
-//    {
-//        Canny(transformedCropped,edges,canny_l,canny_h,3);
-//
-//        imshow("canny edge",edges);
-//        //use a key entry to stop the programm
-//        char key = (char) waitKey(30);
-//        if (key == 'q' || key == 27)
-//        {
-//            break;
-//        }
-//    }
-
-    canny_l = 0;
-    canny_h = 78;
-    Canny(transformedCropped,edges,canny_l,canny_h,3,true);
-    imshow("canny", edges);
-    waitKey(0);
-
-    //canny invullen
-
-    dilate(edges,edges,Mat(),anchor,2);
-    erode(edges,edges,Mat(),anchor,1);
-    imshow("canny filled",edges);
-    waitKey(0);
 
 //
 //    Mat H = channels[0];
