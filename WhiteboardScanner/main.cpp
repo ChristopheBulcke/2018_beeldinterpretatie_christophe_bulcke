@@ -1,67 +1,10 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/highgui/highgui.hpp>
 
 using namespace std;
 using namespace cv;
 
-#define NCOLORS 6
-#define SUPPER 255
-#define SLOWER 0
-#define VUPPER 250
-#define VLOWER 10
-
-const String window_name = "Finaal";
 vector<Point> boardCorners;
-const int max_value_H = 360/2;
-const int max_value = 255;
-
-int low_H = 10, low_S = 100, low_V = 0;
-int high_H = 168, high_S = max_value, high_V = max_value;
-int canny_l = 100, canny_h = 500, canny_max = 500;
-static void on_low_H_thresh_trackbar(int, void *)
-{
-    low_H = min(high_H-1, low_H);
-    setTrackbarPos("Low H", window_name, low_H);
-}
-static void on_high_H_thresh_trackbar(int, void *)
-{
-    high_H = max(high_H, low_H+1);
-    setTrackbarPos("High H", window_name, high_H);
-}
-static void on_low_S_thresh_trackbar(int, void *)
-{
-    low_S = min(high_S-1, low_S);
-    setTrackbarPos("Low S", window_name, low_S);
-}
-static void on_high_S_thresh_trackbar(int, void *)
-{
-    high_S = max(high_S, low_S+1);
-    setTrackbarPos("High S", window_name, high_S);
-}
-static void on_low_V_thresh_trackbar(int, void *)
-{
-    low_V = min(high_V-1, low_V);
-    setTrackbarPos("Low V", window_name, low_V);
-}
-static void on_high_V_thresh_trackbar(int, void *)
-{
-    high_V = max(high_V, low_V+1);
-    setTrackbarPos("High V", window_name, high_V);
-}
-
-static void on_canny_l_trackbar(int, void *)
-{
-    canny_l = min(canny_h-1, canny_l);
-    setTrackbarPos("Canny Low", "canny edge", canny_l);
-}
-
-static void on_canny_h_trackbar(int, void *)
-{
-    high_V = max(canny_h, canny_l+1);
-    setTrackbarPos("Canny High", "canny edge", canny_h);
-}
 
 void CallBackFuncCorners(int event, int x, int y, int flags, void* userdata)
 {
@@ -127,29 +70,10 @@ int main(int argc, const char** argv)
         return -1;
     }
 
-    namedWindow(window_name);
-
-    //create trackbars
-    createTrackbar("Low H", window_name, &low_H, max_value_H, on_low_H_thresh_trackbar);
-    createTrackbar("High H", window_name, &high_H, max_value_H, on_high_H_thresh_trackbar);
-    createTrackbar("Low S", window_name, &low_S, max_value, on_low_S_thresh_trackbar);
-    createTrackbar("High S", window_name, &high_S, max_value, on_high_S_thresh_trackbar);
-    createTrackbar("Low V", window_name, &low_V, max_value, on_low_V_thresh_trackbar);
-    createTrackbar("High V", window_name, &high_V, max_value, on_high_V_thresh_trackbar);
-
     ///Define whiteboard area
     //new window
     string cornersWindow("Select the 4 corners of the whiteboard clockwise, starting top left.");
     namedWindow(cornersWindow);
-
-//    putText(img,
-//            "Click on the 4 corners of the whiteboard, clockwise!.",
-//            Point(5,20), // Coordinates
-//            FONT_HERSHEY_COMPLEX_SMALL, // Font
-//            0.9, // Scale. 2.0 = 2x bigger
-//            Scalar(255,255,255), // BGR Color
-//            1, // Line Thickness (Optional)
-//            CV_AA);
 
     //define mouse callback
     setMouseCallback(cornersWindow, CallBackFuncCorners, NULL);
@@ -161,21 +85,24 @@ int main(int argc, const char** argv)
 
     fillConvexPoly( mask, boardCorners, Scalar(255,255,255), LINE_AA );
 
-//    imshow("mask",mask);
-//    waitKey(0);
+    imshow("mask",mask);
+    waitKey(0);
 
     Mat board = Mat::zeros(img.rows,img.cols,CV_8UC3);
     multiply(img,mask/255,board);
 
-//    imshow("board",board);
-//    waitKey(0);
+    imshow("board",board);
+    waitKey(0);
 
     ///Transform perspective
 
     Mat M, transformed;
     M = Mat::zeros(img.rows,img.cols,img.type());
 
+    //calculate bounding rectangle of the whiteboard so we have a reference for the perspective transform
     Rect r1 = boundingRect(boardCorners);
+
+    //there is a fixed order in wich the corners need to be clicked on, so we are able to match the clicked corners against the bounding rectangle corners
     vector<Point> boundingRectanglePoints;
     boundingRectanglePoints.push_back(Point(r1.x , r1.y));    //top left
     boundingRectanglePoints.push_back(Point(r1.x+r1.width , r1.y));    //top right
@@ -185,11 +112,13 @@ int main(int argc, const char** argv)
     Point2f temp1[4];
     Point2f temp2[4];
 
+    //put the corners of the whiteboard in an array
     temp1[0] = boardCorners.at(0);
     temp1[1] = boardCorners.at(1);
     temp1[2] = boardCorners.at(2);
     temp1[3] = boardCorners.at(3);
 
+    //put the corners of the boundingrectangle in an array
     temp2[0] = boundingRectanglePoints.at(0);
     temp2[1] = boundingRectanglePoints.at(1);
     temp2[2] = boundingRectanglePoints.at(2);
@@ -197,8 +126,8 @@ int main(int argc, const char** argv)
 
     M = getPerspectiveTransform(temp1,temp2);
     warpPerspective(board,transformed,M,transformed.size());
-//    imshow("transformed mask",transformed);
-//    waitKey(0);
+    imshow("transformed mask",transformed);
+    waitKey(0);
 
     Mat transformedCropped = Mat::zeros(r1.height,r1.width,img.type());
 
@@ -209,6 +138,7 @@ int main(int argc, const char** argv)
 
     ///Preprocessing
     //noise reduction
+
     Mat gray = Mat::zeros(r1.height,r1.width,CV_8UC1);
     cvtColor(transformedCropped,gray,CV_BGR2GRAY);
     imshow("gray",gray);
@@ -221,29 +151,32 @@ int main(int argc, const char** argv)
     clahe_pointer->apply(gray.clone(), grayCLAHE);
     imshow("gray CLAHE", grayCLAHE); waitKey(0);
 
-    Mat smoothedGaussian,smoothedBilateral,smoothedMedian;
+//    Mat smoothedBilateral;
 //    bilateralFilter ( gray, smoothedBilateral, 15, 80, 80 );
 //    imshow("smoothedBilateral",smoothedBilateral);
 //    waitKey(0);
 
+    Mat smoothedGaussian;
     GaussianBlur(grayCLAHE,smoothedGaussian,Size(5,5), 0, 0);
     imshow("smoothedGaussian",smoothedGaussian);
     waitKey(0);
 
+//    Mat smoothedMedian;
 //    medianBlur(gray,smoothedMedian,3);
 //    imshow("smoothedMedian",smoothedMedian);
 //    waitKey(0);
 
-    Mat sharpenedBilateral,sharpenedGaussian,sharpenedMedian;
+//    Mat sharpenedBilateral,sharpenedGaussian,sharpenedMedian;
     float kdata[] = {-1, -1, -1, -1, 9, -1, -1, -1, -1};
     Mat kernel(3,3,CV_32F,kdata);  //laplace kernel for sharpening the image
+
 //    filter2D(smoothedBilateral,sharpenedBilateral,-1,kernel);
 //    imshow("sharpenedBilateral",sharpenedBilateral);
 //    waitKey(0);
 
-    filter2D(smoothedGaussian,sharpenedGaussian,-1,kernel);
-    imshow("sharpenedGaussian",sharpenedGaussian);
-    waitKey(0);
+//    filter2D(smoothedGaussian,sharpenedGaussian,-1,kernel);
+//    imshow("sharpenedGaussian",sharpenedGaussian);
+//    waitKey(0);
 
 //    filter2D(smoothedMedian,sharpenedMedian,-1,kernel);
 //    imshow("sharpenedMedian",sharpenedMedian);
@@ -263,81 +196,106 @@ int main(int argc, const char** argv)
 //    waitKey(0);
 
     ///Mask
-    Mat maskThresh;
+    Mat maskThresh = Mat::zeros(r1.height,r1.width,CV_8UC1);
     adaptiveThreshold(smoothedGaussian, maskThresh, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 5, 3);
     imshow("gray CLAHE adaptive gaussian threshold", maskThresh);
     waitKey(0);
 
-    ///Convert to HSV to segment different colors
-    Mat hsv;
+    ///Convert to HSV to quantise different colors
+    Mat hsv,hsvMasked,result;
     vector<Mat> channels;
+    //Mat bgrQuantised = Mat::zeros(hsv.rows,hsv.cols,hsv.type());
 
-//
-//    Mat H = channels[0];
-//    Mat S = channels[1];
-//    Mat V = channels[2];
-//
-//    Mat S_th, V_th, th_temp1, th_temp2, H_th_total;
-//    H_th_total = Mat::zeros(r1.height,r1.width,CV_8UC1);
-//    Mat H_th[NCOLORS];
-//    float lRange = 0;
-//    float hRange = 0;
-//    float angle = 180/NCOLORS;
-//    float halfAngle = angle/2;
-//
-//     while(true) {
-//
-//    //inRange(H,high_H,180,H_th1);
-//    //inRange(H,0,low_H,H_th2);
-//    inRange(S,low_S,high_S,S_th);
-//    inRange(V,low_V,high_V,V_th);
-//
-//    //inRange(S,SLOWER,SUPPER,S_th);
-//    //inRange(V,VLOWER,VUPPER,V_th);
-//
-//    int H_drawValues[NCOLORS];  //values used for drawing the scanned whiteboard, we use quantised colors for the scanned image
-//    int S_drawValue = 100;
-//    int V_drawValue = 50;
-//
-//    for(int i = 0; i < NCOLORS; i++)
-//    {
-//        if(i == 0)
-//        {
-//            inRange(H,180-halfAngle,0,th_temp1);    //lower part of red, minus halfangle
-//            inRange(H,0,halfAngle,th_temp2);    //higher part of red, plus halfangle
-//            H_th[i] = (th_temp1 | th_temp2) & S_th & V_th;
-//        }
-//        else
-//        {
-//            lRange = i*angle - halfAngle;
-//            hRange = i*angle + halfAngle;
-//            inRange(H,lRange,hRange,th_temp1);
-//            H_th[i] = th_temp1 & S_th & V_th;
-//        }
-//        H_drawValues[i] = i*angle;
-//        H_th_total = H_th_total | H_th[i];
-//    }
-//
-//    vector<Mat> ch_hsv;
-//    ch_hsv.push_back(H & S_th & V_th);
-//    ch_hsv.push_back(S & V_th);
-//    ch_hsv.push_back(V & V_th);
-//
-//    Mat finaal_hsv = Mat::zeros(r1.height,r1.width,CV_8UC3);
-//    Mat finaal_bgr = Mat::zeros(r1.height,r1.width,CV_8UC3);
-//
-//    merge(ch_hsv, finaal_hsv);
-//
-//    cvtColor(finaal_hsv,finaal_bgr,CV_HSV2BGR);
-//
-//    imshow(window_name,finaal_bgr);
-//           //use a key entry to stop the programm
-//        char key = (char) waitKey(30);
-//        if (key == 'q' || key == 27)
-//        {
-//            break;
-//        }
-//    }
+    cvtColor(transformedCropped,hsv,CV_BGR2HSV);
+    Mat hsvQuantised = Mat::zeros(hsv.rows,hsv.cols,hsv.type());
+    hsv.copyTo(hsvMasked,maskThresh);
+
+    //all the interval boundaries for quantising the hues
+    int reL = 170;
+    int reU = 12;
+    int orL = 13;
+    int orU = 22;
+    int yeL = 23;
+    int yeU = 32;
+    int grL = 33;
+    int grU = 85;
+    int blL = 86;
+    int blU = 127;
+    int puL = 128;
+    int puU = 145;
+    int piL = 146;
+    int piU = 169;
+
+    int colorIntervals[7][2] = {{reL,reU},
+                                {orL,orU},
+                                {yeL,yeU},
+                                {grL,grU},
+                                {blL,blU},
+                                {puL,puU},
+                                {piL,piU}}; //all the intervals for quantising the hsv hues
+
+    int drawValue[7] = {0,
+                        15,
+                        25,
+                        60,
+                        115,
+                        140,
+                        154};   //all the quantised hsv hues
+
+    int colorIntervalsSize = sizeof(colorIntervals)/sizeof(*colorIntervals); //calculate the size of
+    Vec3b pixelValue;
+    Vec3b pixelValueBGR;
+
+    int maskPixel = 0;
+
+    for (int r = 0; r < hsvMasked.rows; r++)
+    {
+        for (int c = 0; c < hsvMasked.cols; c++)
+        {
+            pixelValue = hsv.at<Vec3b>(r,c);    //pixel value in hsv
+            pixelValueBGR = transformedCropped.at<Vec3b>(r,c);  //pixelvalue in bgr
+            maskPixel = maskThresh.at<uint8_t>(r,c);    //mask pixel value (black or white)
+            if(maskPixel == 255) //if pixel is an element of the mask (white pixel)
+            {
+                for (int i = 0; i < colorIntervalsSize; i++) //run over all the color intervals
+                {
+                    ///Uncomment if you want the colors to be quantised to the above values
+                    //if( (pixelValue[0] >= colorIntervals[i][0]) && (pixelValue[0] <= colorIntervals[i][1]))
+                    //{
+                        //hsvQuantised.at<Vec3b>(r,c)[0] = drawValue[i];
+//                        hsvQuantised.at<Vec3b>(r,c)[0] = pixelValue[0];
+//                        hsvQuantised.at<Vec3b>(r,c)[1] = 255;
+//                        hsvQuantised.at<Vec3b>(r,c)[2] = 255;
+                        //break;  //quit when the right interval has been found
+                    //}
+
+                    if(pixelValueBGR[2] <= 25)
+                    {
+                        cerr <<"H" << (int)pixelValue[0] << " S" << (int)pixelValue[1] << " V" << (int)pixelValue[2] << endl;
+                        hsvQuantised.at<Vec3b>(r,c)[0] = 0;
+                        hsvQuantised.at<Vec3b>(r,c)[1] = 0;
+                        hsvQuantised.at<Vec3b>(r,c)[2] = 0;
+                        break; //quit if the pixel was black to avoid unnecessary calculations
+                    }
+                    else{
+                        hsvQuantised.at<Vec3b>(r,c)[0] = pixelValue[0];
+                        hsvQuantised.at<Vec3b>(r,c)[1] = 255;
+                        hsvQuantised.at<Vec3b>(r,c)[2] = 255;
+                    }
+                }
+            }
+            else    //if pixel isnt an element of the mask put it on white ("whiteboard")
+            {
+                hsvQuantised.at<Vec3b>(r,c)[0] = 0;
+                hsvQuantised.at<Vec3b>(r,c)[1] = 0;
+                hsvQuantised.at<Vec3b>(r,c)[2] = 240;
+            }
+        }
+    }
+
+    cvtColor(hsvQuantised,result,CV_HSV2BGR);
+    imshow("result", result);
+    waitKey(0);
 
     return 0;
 }
