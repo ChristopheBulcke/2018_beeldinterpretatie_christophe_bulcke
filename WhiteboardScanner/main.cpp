@@ -271,7 +271,7 @@ int main(int argc, const char** argv)
 
                     if(pixelValueBGR[2] <= 25)
                     {
-                        cerr <<"H" << (int)pixelValue[0] << " S" << (int)pixelValue[1] << " V" << (int)pixelValue[2] << endl;
+                        //cerr <<"H" << (int)pixelValue[0] << " S" << (int)pixelValue[1] << " V" << (int)pixelValue[2] << endl;
                         hsvQuantised.at<Vec3b>(r,c)[0] = 0;
                         hsvQuantised.at<Vec3b>(r,c)[1] = 0;
                         hsvQuantised.at<Vec3b>(r,c)[2] = 0;
